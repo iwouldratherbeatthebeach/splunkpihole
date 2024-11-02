@@ -1,0 +1,117 @@
+<form version="1.1" theme="dark">
+  <label>Pihole Overview</label>
+  <fieldset submitButton="false">
+    <input type="time" token="pitime">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <chart>
+        <search>
+          <query>`pihole_index` sourcetype=pihole
+| eval blocked_status = if(match(_raw, "blocked"), "Blocked", "Total")
+| timechart count by blocked_status</query>
+          <earliest>$pitime.earliest$</earliest>
+          <latest>$pitime.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <single>
+        <title>Blocked Requests</title>
+        <search>
+          <query>`pihole_index` sourcetype=pihole action="gravity blocked" 
+| stats count</query>
+          <earliest>$pitime.earliest$</earliest>
+          <latest>$pitime.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Allowed Requests</title>
+        <search>
+          <query>`pihole_index` sourcetype=pihole action!="gravity blocked" 
+| stats count</query>
+          <earliest>$pitime.earliest$</earliest>
+          <latest>$pitime.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Busiest Hosts</title>
+        <search>
+          <query>`pihole_index` sourcetype=pihole
+| stats count by src
+| sort - count</query>
+          <earliest>$pitime.earliest$</earliest>
+          <latest>$pitime.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Top Blocked Domains</title>
+        <search>
+          <query>`pihole_index` sourcetype=pihole
+| search action=gravity*
+| stats count by domain
+| sort - count</query>
+          <earliest>$pitime.earliest$</earliest>
+          <latest>$pitime.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Top Blocked URLs</title>
+        <search>
+          <query>`pihole_index` sourcetype=pihole action="gravity blocked" 
+| stats count by blocked
+| sort -count</query>
+          <earliest>$pitime.earliest$</earliest>
+          <latest>$pitime.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Action Breakdown</title>
+        <search>
+          <query>`pihole_index` sourcetype=pihole
+| stats count by action
+| sort - count</query>
+          <earliest>$pitime.earliest$</earliest>
+          <latest>$pitime.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

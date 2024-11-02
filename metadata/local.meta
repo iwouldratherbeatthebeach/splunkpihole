@@ -1,0 +1,28 @@
+[app/install/install_source_checksum]
+version = 1.0.0
+modtime = 1729535505.445352000
+
+[app/ui]
+version = 9.3.0
+modtime = 1730509126.845042000
+
+[app/launcher]
+version = 9.3.0
+modtime = 1730509126.848911000
+
+[app/package/check_for_updates]
+version = 9.3.0
+modtime = 1730509126.851013000
+
+[]
+access = read : [ * ], write : [ * ]
+export = system
+version = 9.3.0
+modtime = 1730509135.718096000
+
+[macros/pihole_index]
+access = read : [ * ]
+export = system
+owner = admin
+version = 9.3.0
+modtime = 1730509711.224422000
