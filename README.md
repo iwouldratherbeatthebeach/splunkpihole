@@ -9,3 +9,5 @@ Macro default for index is `index=*` and I highly recommend changing this to wha
 Very minimal extractions, and no CIM mapping as of yet.
 
 Email me with any thoughts / ideas!
+
+aaron@splunk.com
