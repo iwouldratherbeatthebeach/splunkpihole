@@ -13,7 +13,7 @@ This project intentionally separates deployment responsibilities:
 ## Architecture
 
 ```text
-Pi-hole 10.0.0.223
+Pi-hole 
   ├─ Universal Forwarder monitors:
   │    /var/log/pihole/pihole.log
   │    /var/log/pihole/FTL.log
@@ -26,7 +26,7 @@ Pi-hole 10.0.0.223
        /api/dns/blocking
              │
              ▼ TCP 9997
-Splunk robot2 10.0.0.230
+Splunk server
   ├─ index=pihole
   ├─ TA-pihole
   └─ SA-pihole dashboards and alerts
