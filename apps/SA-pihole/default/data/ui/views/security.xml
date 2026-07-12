@@ -1,0 +1,31 @@
+<form version="1.1" theme="dark">
+  <label>Pi-hole Security Analytics</label>
+  <description>Behavioral DNS detections, unusual names, error activity, and encrypted-DNS indicators.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time"><label>Time</label><default><earliest>-24h@h</earliest><latest>now</latest></default></input>
+    <input type="dropdown" token="node"><label>Pi-hole node</label><choice value="*">All</choice><default>*</default><search><query>`pihole_queries` | stats count by pihole_node</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>pihole_node</fieldForLabel><fieldForValue>pihole_node</fieldForValue></input>
+  </fieldset>
+  <search id="base"><query>`pihole_queries` pihole_node="$node$"</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search>
+
+  <row>
+    <panel><single><title>NXDOMAIN replies</title><search base="base"><query>| stats count(eval(reply_code="NXDOMAIN")) as nxdomain</query></search></single></panel>
+    <panel><single><title>DNSSEC BOGUS</title><search base="base"><query>| stats count(eval(dnssec="BOGUS")) as bogus</query></search></single></panel>
+    <panel><single><title>Extended DNS errors</title><search base="base"><query>| stats count(eval(ede_code&gt;0)) as ede</query></search></single></panel>
+    <panel><single><title>High-entropy candidates</title><search base="base"><query>| eval first_label=mvindex(split(query,"."),0),label_len=len(first_label),digits=len(replace(first_label,"[^0-9]","")),digit_ratio=digits/label_len | where label_len&gt;=24 OR (label_len&gt;=16 AND digit_ratio&gt;0.35) | stats dc(query) as candidates</query></search></single></panel>
+  </row>
+
+  <row>
+    <panel><chart><title>NXDOMAIN volume and anomaly score</title><search base="base"><query>| timechart span=5m count(eval(reply_code="NXDOMAIN")) as nxdomain | eventstats avg(nxdomain) as baseline stdev(nxdomain) as deviation | eval zscore=if(deviation&gt;0,(nxdomain-baseline)/deviation,0) | fields _time nxdomain zscore</query></search><option name="charting.chart">line</option></chart></panel>
+    <panel><chart><title>Blocking rate by client</title><search base="base"><query>| stats count as total count(eval(action="blocked")) as blocked by src | where total&gt;=20 | eval block_rate=round(100*blocked/total,2) | sort - block_rate | head 20</query></search><option name="charting.chart">bar</option></chart></panel>
+  </row>
+
+  <row>
+    <panel><table><title>Lexically unusual domain candidates</title><search base="base"><query>| eval first_label=mvindex(split(query,"."),0),label_len=len(first_label),digits=len(replace(first_label,"[^0-9]","")),hyphens=len(replace(first_label,"[^-]","")),digit_ratio=round(digits/label_len,2) | where label_len&gt;=24 OR (label_len&gt;=16 AND digit_ratio&gt;0.35) OR hyphens&gt;=4 | stats count as queries dc(src) as clients values(src) as sources values(action) as actions by query label_len digit_ratio | sort - queries | head 200</query></search></table></panel>
+    <panel><table><title>Rare query types by client</title><search base="base"><query>| where NOT query_type IN ("A","AAAA","HTTPS","PTR") | stats count as queries dc(query) as domains values(query) as sample_domains by src src_name query_type | sort - queries | head 100</query></search></table></panel>
+  </row>
+
+  <row>
+    <panel><table><title>DNSSEC and Extended DNS Errors</title><search base="base"><query>| where dnssec="BOGUS" OR ede_code&gt;0 | stats count as events values(dnssec) as dnssec values(ede_code) as ede_codes values(ede_text) as ede_text values(reply_code) as replies by src query | sort - events | head 200</query></search></table></panel>
+    <panel><table><title>Common encrypted-DNS resolver domains</title><search base="base"><query>| eval q=lower(query) | where match(q,"(^|\\.)(dns\\.google|cloudflare-dns\\.com|mozilla\\.cloudflare-dns\\.com|security\\.cloudflare-dns\\.com|dns\\.quad9\\.net|doh\\.opendns\\.com)$") | stats count as queries values(action) as actions dc(src) as clients values(src) as sources by query | sort - queries</query></search></table></panel>
+  </row>
+</form>

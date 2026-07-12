@@ -1,0 +1,16 @@
+<nav color="#7400B8">
+  <view name="overview" default="true" />
+  <collection label="Analysis">
+    <view name="clients" />
+    <view name="domains" />
+    <view name="upstreams" />
+    <view name="security" />
+    <view name="query_explorer" />
+  </collection>
+  <collection label="Operations">
+    <view name="operations" />
+  </collection>
+  <collection label="Search">
+    <view name="search" />
+  </collection>
+</nav>

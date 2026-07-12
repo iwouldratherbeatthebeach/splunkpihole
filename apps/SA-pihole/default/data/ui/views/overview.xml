@@ -1,0 +1,99 @@
+<form version="1.1" theme="dark">
+  <label>Pi-hole Overview</label>
+  <description>Network DNS activity, blocking efficiency, clients, domains, and response health.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time</label>
+      <default><earliest>-24h@h</earliest><latest>now</latest></default>
+    </input>
+    <input type="dropdown" token="node">
+      <label>Pi-hole node</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <search>
+        <query>`pihole_queries` | stats count by pihole_node | sort pihole_node</query>
+        <earliest>-7d</earliest><latest>now</latest>
+      </search>
+      <fieldForLabel>pihole_node</fieldForLabel>
+      <fieldForValue>pihole_node</fieldForValue>
+    </input>
+    <input type="dropdown" token="action">
+      <label>Action</label>
+      <choice value="*">All</choice>
+      <choice value="allowed">Allowed</choice>
+      <choice value="blocked">Blocked</choice>
+      <default>*</default>
+    </input>
+  </fieldset>
+
+  <search id="base">
+    <query>`pihole_queries` pihole_node="$node$" action="$action$"</query>
+    <earliest>$time.earliest$</earliest>
+    <latest>$time.latest$</latest>
+  </search>
+
+  <row>
+    <panel><single><title>Total queries</title><search base="base"><query>| stats count</query></search><option name="drilldown">none</option></single></panel>
+    <panel><single><title>Blocked</title><search base="base"><query>| stats count(eval(action="blocked")) as blocked</query></search><option name="drilldown">none</option></single></panel>
+    <panel><single><title>Block rate</title><search base="base"><query>| stats count as total count(eval(action="blocked")) as blocked | eval block_rate=round(100*blocked/total,2) | fields block_rate</query></search><option name="unit">%</option><option name="drilldown">none</option></single></panel>
+    <panel><single><title>Unique clients</title><search base="base"><query>| stats dc(src) as clients</query></search><option name="drilldown">none</option></single></panel>
+    <panel><single><title>Unique domains</title><search base="base"><query>| stats dc(query) as domains</query></search><option name="drilldown">none</option></single></panel>
+    <panel><single><title>P95 reply time</title><search base="base"><query>| stats perc95(eval(if(reply_time_ms&gt;=0,reply_time_ms,null()))) as p95_ms | eval p95_ms=round(p95_ms,2)</query></search><option name="unit"> ms</option><option name="drilldown">none</option></single></panel>
+  </row>
+
+  <row>
+    <panel>
+      <chart>
+        <title>Queries over time</title>
+        <search base="base"><query>| timechart span=5m count by action limit=5 useother=f</query></search>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">all</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Reply codes</title>
+        <search base="base"><query>| stats count by reply_code | sort - count | head 12</query></search>
+        <option name="charting.chart">pie</option><option name="charting.chart.style">donut</option>
+        <option name="charting.drilldown">all</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+        <title>Top clients</title>
+        <search base="base"><query>| stats count as queries count(eval(action="blocked")) as blocked dc(query) as unique_domains avg(eval(if(reply_time_ms&gt;=0,reply_time_ms,null()))) as avg_reply_ms by src src_name | eval block_rate=round(100*blocked/queries,2), avg_reply_ms=round(avg_reply_ms,2) | sort - queries | head 20</query></search>
+        <option name="drilldown">row</option>
+        <drilldown><link target="_blank">clients?form.client=$row.src$</link></drilldown>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Top domains</title>
+        <search base="base"><query>| stats count as queries count(eval(action="blocked")) as blocked dc(src) as clients values(status) as statuses by query | eval block_rate=round(100*blocked/queries,2) | sort - queries | head 20</query></search>
+        <option name="drilldown">row</option>
+        <drilldown><link target="_blank">domains?form.domain=$row.query$</link></drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <chart>
+        <title>DNS query types</title>
+        <search base="base"><query>| stats count by query_type | sort - count | head 15</query></search>
+        <option name="charting.chart">column</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Allowed query disposition</title>
+        <search base="base"><query>| search action=allowed | eval disposition=case(cached=true(),"Cache/local",forwarded=true(),"Forwarded",1=1,status) | stats count by disposition | sort - count</query></search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+</form>

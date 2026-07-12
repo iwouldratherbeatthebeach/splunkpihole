@@ -1,0 +1,36 @@
+<form version="1.1" theme="dark">
+  <label>Pi-hole Domains</label>
+  <description>Domain popularity, block reasons, clients, CNAME blocking, and newly observed names.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time"><label>Time</label><default><earliest>-24h@h</earliest><latest>now</latest></default></input>
+    <input type="dropdown" token="node"><label>Pi-hole node</label><choice value="*">All</choice><default>*</default><search><query>`pihole_queries` | stats count by pihole_node</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>pihole_node</fieldForLabel><fieldForValue>pihole_node</fieldForValue></input>
+    <input type="text" token="domain"><label>Domain wildcard</label><default>*</default></input>
+  </fieldset>
+  <search id="base"><query>`pihole_queries` pihole_node="$node$" query="$domain$"</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search>
+
+  <row>
+    <panel><table><title>Domain activity</title><search base="base"><query>| stats count as queries count(eval(action="blocked")) as blocked dc(src) as clients values(status) as statuses values(query_type) as types avg(eval(if(reply_time_ms&gt;=0,reply_time_ms,null()))) as avg_reply_ms max(_time) as last_seen by query | eval block_rate=round(100*blocked/queries,2),avg_reply_ms=round(avg_reply_ms,2) | convert ctime(last_seen) | sort - queries</query></search><option name="count">30</option><option name="drilldown">row</option><drilldown><set token="domain">$row.query$</set></drilldown></table></panel>
+  </row>
+
+  <row>
+    <panel><chart><title>Selected domain over time</title><search base="base"><query>| timechart span=5m count by action useother=f</query></search><option name="charting.chart">area</option><option name="charting.chart.stackMode">stacked</option></chart></panel>
+    <panel><chart><title>Clients requesting selected domain</title><search base="base"><query>| stats count by src | sort - count | head 20</query></search><option name="charting.chart">bar</option></chart></panel>
+  </row>
+
+  <row>
+    <panel><table><title>Blocked domains and mechanisms</title><search base="base"><query>| search action=blocked | stats count as blocks dc(src) as clients values(status) as mechanisms values(list_id) as list_ids values(cname) as cname_target by query | sort - blocks | head 100</query></search></table></panel>
+    <panel><table><title>CNAME deep-inspection blocks</title><search base="base"><query>| where isnotnull(cname) | stats count as blocks dc(src) as clients values(status) as mechanisms by query cname | sort - blocks | head 100</query></search></table></panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+        <title>Domains first observed in the last 24 hours</title>
+        <search>
+          <query>`pihole_queries` pihole_node="$node$" earliest=-30d | stats min(_time) as first_seen max(_time) as last_seen count dc(src) as clients by query | where first_seen&gt;=relative_time(now(),"-24h") | convert ctime(first_seen) ctime(last_seen) | sort - first_seen | head 200</query>
+          <earliest>-30d</earliest><latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

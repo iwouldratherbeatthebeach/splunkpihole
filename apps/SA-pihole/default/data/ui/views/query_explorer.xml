@@ -1,0 +1,26 @@
+<form version="1.1" theme="dark">
+  <label>Pi-hole Query Explorer</label>
+  <description>Search and drill into normalized Pi-hole DNS transactions.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time"><label>Time</label><default><earliest>-4h</earliest><latest>now</latest></default></input>
+    <input type="text" token="client"><label>Client</label><default>*</default></input>
+    <input type="text" token="domain"><label>Domain</label><default>*</default></input>
+    <input type="dropdown" token="action"><label>Action</label><choice value="*">All</choice><choice value="allowed">Allowed</choice><choice value="blocked">Blocked</choice><default>*</default></input>
+    <input type="dropdown" token="query_type"><label>Query type</label><choice value="*">All</choice><default>*</default><search><query>`pihole_queries` | stats count by query_type | sort query_type</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>query_type</fieldForLabel><fieldForValue>query_type</fieldForValue></input>
+    <input type="dropdown" token="reply"><label>Reply</label><choice value="*">All</choice><default>*</default><search><query>`pihole_queries` | stats count by reply_code | sort reply_code</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>reply_code</fieldForLabel><fieldForValue>reply_code</fieldForValue></input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>`pihole_queries` src="$client$" query="$domain$" action="$action$" query_type="$query_type$" reply_code="$reply$" | eval reply_time_ms=round(reply_time_ms,3) | table _time pihole_node query_id src src_name query query_type action status reply_code reply_time_ms upstream dnssec list_id cname ede_code ede_text | sort - _time</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
+        </search>
+        <option name="count">50</option>
+        <option name="drilldown">row</option>
+        <drilldown><link target="_blank">search?q=%60pihole_queries%60%20query_id%3D%22$row.query_id$%22</link></drilldown>
+      </table>
+    </panel>
+  </row>
+</form>

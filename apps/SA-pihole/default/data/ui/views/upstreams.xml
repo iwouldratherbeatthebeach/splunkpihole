@@ -1,0 +1,31 @@
+<form version="1.1" theme="dark">
+  <label>Pi-hole Upstreams and Performance</label>
+  <description>Forwarding destinations, response latency, reply quality, caching, and DNSSEC.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time"><label>Time</label><default><earliest>-24h@h</earliest><latest>now</latest></default></input>
+    <input type="dropdown" token="node"><label>Pi-hole node</label><choice value="*">All</choice><default>*</default><search><query>`pihole_queries` | stats count by pihole_node</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>pihole_node</fieldForLabel><fieldForValue>pihole_node</fieldForValue></input>
+  </fieldset>
+  <search id="base"><query>`pihole_queries` pihole_node="$node$"</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search>
+
+  <row>
+    <panel><single><title>Forwarded</title><search base="base"><query>| stats count(eval(forwarded=true())) as forwarded</query></search></single></panel>
+    <panel><single><title>Cache/local</title><search base="base"><query>| stats count(eval(cached=true())) as cached</query></search></single></panel>
+    <panel><single><title>Cache ratio</title><search base="base"><query>| stats count as total count(eval(cached=true())) as cached | eval ratio=round(100*cached/total,2) | fields ratio</query></search><option name="unit">%</option></single></panel>
+    <panel><single><title>Average latency</title><search base="base"><query>| stats avg(eval(if(reply_time_ms&gt;=0,reply_time_ms,null()))) as avg | eval avg=round(avg,2)</query></search><option name="unit"> ms</option></single></panel>
+    <panel><single><title>P95 latency</title><search base="base"><query>| stats perc95(eval(if(reply_time_ms&gt;=0,reply_time_ms,null()))) as p95 | eval p95=round(p95,2)</query></search><option name="unit"> ms</option></single></panel>
+  </row>
+
+  <row>
+    <panel><chart><title>Response latency over time</title><search base="base"><query>| where reply_time_ms&gt;=0 | timechart span=5m avg(reply_time_ms) as average perc95(reply_time_ms) as p95</query></search><option name="charting.chart">line</option></chart></panel>
+    <panel><chart><title>Forwarded vs cache/local</title><search base="base"><query>| eval disposition=case(forwarded=true(),"Forwarded",cached=true(),"Cache/local",action="blocked","Blocked",1=1,"Other") | timechart span=5m count by disposition useother=f</query></search><option name="charting.chart">area</option><option name="charting.chart.stackMode">stacked</option></chart></panel>
+  </row>
+
+  <row>
+    <panel><table><title>Upstream performance</title><search base="base"><query>| where isnotnull(upstream) | stats count as queries avg(reply_time_ms) as avg_ms perc95(reply_time_ms) as p95_ms count(eval(reply_code="NXDOMAIN")) as nxdomain count(eval(dnssec="BOGUS")) as dnssec_bogus dc(query) as domains by upstream | eval avg_ms=round(avg_ms,2),p95_ms=round(p95_ms,2) | sort - queries</query></search></table></panel>
+    <panel><chart><title>DNSSEC result</title><search base="base"><query>| stats count by dnssec | sort - count</query></search><option name="charting.chart">pie</option><option name="charting.chart.style">donut</option></chart></panel>
+  </row>
+
+  <row>
+    <panel><table><title>Slowest domain/upstream combinations</title><search base="base"><query>| where reply_time_ms&gt;=0 AND isnotnull(upstream) | stats count as queries avg(reply_time_ms) as avg_ms max(reply_time_ms) as max_ms perc95(reply_time_ms) as p95_ms by query upstream | where queries&gt;=3 | eval avg_ms=round(avg_ms,2),max_ms=round(max_ms,2),p95_ms=round(p95_ms,2) | sort - p95_ms | head 100</query></search></table></panel>
+  </row>
+</form>

@@ -1,0 +1,49 @@
+<form version="1.1" theme="dark">
+  <label>Pi-hole Clients</label>
+  <description>Client behavior, blocking rates, domain diversity, and query-volume anomalies.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time"><label>Time</label><default><earliest>-24h@h</earliest><latest>now</latest></default></input>
+    <input type="dropdown" token="node">
+      <label>Pi-hole node</label><choice value="*">All</choice><default>*</default>
+      <search><query>`pihole_queries` | stats count by pihole_node</query><earliest>-7d</earliest><latest>now</latest></search>
+      <fieldForLabel>pihole_node</fieldForLabel><fieldForValue>pihole_node</fieldForValue>
+    </input>
+    <input type="text" token="client"><label>Client IP</label><default>*</default></input>
+  </fieldset>
+  <search id="base"><query>`pihole_queries` pihole_node="$node$" src="$client$"</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search>
+
+  <row>
+    <panel>
+      <table>
+        <title>Client inventory and behavior</title>
+        <search base="base"><query>| stats count as queries count(eval(action="blocked")) as blocked count(eval(reply_code="NXDOMAIN")) as nxdomain dc(query) as unique_domains dc(query_type) as query_types avg(eval(if(reply_time_ms&gt;=0,reply_time_ms,null()))) as avg_reply_ms max(_time) as last_seen values(src_name) as names by pihole_node src | eval block_rate=round(100*blocked/queries,2),avg_reply_ms=round(avg_reply_ms,2) | convert ctime(last_seen) | sort - queries</query></search>
+        <option name="count">30</option>
+        <option name="drilldown">row</option>
+        <drilldown><set token="client">$row.src$</set></drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel><chart><title>Selected client query volume</title><search base="base"><query>| timechart span=5m count by action useother=f</query></search><option name="charting.chart">line</option></chart></panel>
+    <panel><chart><title>Selected client query types</title><search base="base"><query>| stats count by query_type | sort - count | head 15</query></search><option name="charting.chart">bar</option></chart></panel>
+  </row>
+
+  <row>
+    <panel><table><title>Top domains for selected client</title><search base="base"><query>| stats count as queries count(eval(action="blocked")) as blocked values(status) as status by query | eval block_rate=round(100*blocked/queries,2) | sort - queries | head 50</query></search></table></panel>
+    <panel><table><title>Top blocked domains for selected client</title><search base="base"><query>| search action=blocked | stats count as blocks values(status) as block_reason values(list_id) as list_id by query | sort - blocks | head 50</query></search></table></panel>
+  </row>
+
+  <row>
+    <panel>
+      <chart>
+        <title>Five-minute volume anomaly score by client</title>
+        <search>
+          <query>`pihole_queries` pihole_node="$node$" | bin _time span=5m | stats count as queries by _time src | eventstats avg(queries) as baseline stdev(queries) as deviation by src | eval zscore=round(if(deviation&gt;0,(queries-baseline)/deviation,0),2) | where zscore&gt;=2 | timechart span=5m max(zscore) by src limit=10</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+</form>

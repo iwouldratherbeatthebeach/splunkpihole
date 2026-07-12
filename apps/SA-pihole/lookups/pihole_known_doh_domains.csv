@@ -1,0 +1,7 @@
+domain,provider,description
+dns.google,Google,Google Public DNS over HTTPS
+cloudflare-dns.com,Cloudflare,Cloudflare DNS over HTTPS
+mozilla.cloudflare-dns.com,Cloudflare/Mozilla,Firefox trusted recursive resolver
+security.cloudflare-dns.com,Cloudflare,Cloudflare security-filtered resolver
+dns.quad9.net,Quad9,Quad9 DNS over HTTPS
+doh.opendns.com,Cisco OpenDNS,Cisco OpenDNS over HTTPS
