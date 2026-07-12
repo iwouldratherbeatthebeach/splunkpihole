@@ -118,7 +118,7 @@ class PiHoleAPI:
             clean = {k: v for k, v in params.items() if v is not None}
             url += "?" + urllib.parse.urlencode(clean)
 
-        headers = {"Accept": "application/json", "User-Agent": "TA-pihole/3.0"}
+        headers = {"Accept": "application/json", "User-Agent": "TA-pihole/3.0.1"}
         if authenticated and self.sid:
             headers["X-FTL-SID"] = self.sid
 

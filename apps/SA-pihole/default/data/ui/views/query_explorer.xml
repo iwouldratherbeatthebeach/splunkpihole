@@ -14,7 +14,7 @@
     <panel>
       <table>
         <search>
-          <query>`pihole_queries` src="$client$" query="$domain$" action="$action$" query_type="$query_type$" reply_code="$reply$" | eval reply_time_ms=round(reply_time_ms,3) | table _time pihole_node query_id src src_name query query_type action status reply_code reply_time_ms upstream dnssec list_id cname ede_code ede_text | sort - _time</query>
+          <query>`pihole_queries` src="$client$" query="$domain$" action="$action$" query_type="$query_type$" reply_code="$reply$" | eval pihole_node=coalesce(pihole_node,host), reply_time_ms=round(reply_time_ms,3) | table _time pihole_node query_id src src_name query query_type action status reply_code reply_time_ms upstream dnssec list_id cname ede_code ede_text | sort - _time</query>
           <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
         <option name="count">50</option>

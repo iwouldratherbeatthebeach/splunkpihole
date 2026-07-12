@@ -11,11 +11,11 @@
       <choice value="*">All</choice>
       <default>*</default>
       <search>
-        <query>`pihole_queries` | stats count by pihole_node | sort pihole_node</query>
+        <query>`pihole_queries` | stats count by host | sort host</query>
         <earliest>-7d</earliest><latest>now</latest>
       </search>
-      <fieldForLabel>pihole_node</fieldForLabel>
-      <fieldForValue>pihole_node</fieldForValue>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
     </input>
     <input type="dropdown" token="action">
       <label>Action</label>
@@ -27,7 +27,7 @@
   </fieldset>
 
   <search id="base">
-    <query>`pihole_queries` pihole_node="$node$" action="$action$"</query>
+    <query>`pihole_queries` host="$node$" action="$action$"</query>
     <earliest>$time.earliest$</earliest>
     <latest>$time.latest$</latest>
   </search>

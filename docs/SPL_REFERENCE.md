@@ -92,3 +92,20 @@
   by src query dnssec ede_code
 | sort - count
 ```
+
+
+## Node filtering
+
+Use either field:
+
+```spl
+`pihole_queries` host="pihole-10.0.0.223"
+```
+
+or the compatibility field:
+
+```spl
+`pihole_queries` pihole_node="pihole-10.0.0.223"
+```
+
+Dashboards use `host` because it is indexed metadata and is always present.

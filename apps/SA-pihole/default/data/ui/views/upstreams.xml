@@ -3,9 +3,9 @@
   <description>Forwarding destinations, response latency, reply quality, caching, and DNSSEC.</description>
   <fieldset submitButton="false">
     <input type="time" token="time"><label>Time</label><default><earliest>-24h@h</earliest><latest>now</latest></default></input>
-    <input type="dropdown" token="node"><label>Pi-hole node</label><choice value="*">All</choice><default>*</default><search><query>`pihole_queries` | stats count by pihole_node</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>pihole_node</fieldForLabel><fieldForValue>pihole_node</fieldForValue></input>
+    <input type="dropdown" token="node"><label>Pi-hole node</label><choice value="*">All</choice><default>*</default><search><query>`pihole_queries` | stats count by host</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>host</fieldForLabel><fieldForValue>host</fieldForValue></input>
   </fieldset>
-  <search id="base"><query>`pihole_queries` pihole_node="$node$"</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search>
+  <search id="base"><query>`pihole_queries` host="$node$"</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search>
 
   <row>
     <panel><single><title>Forwarded</title><search base="base"><query>| stats count(eval(forwarded=true())) as forwarded</query></search></single></panel>

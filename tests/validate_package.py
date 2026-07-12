@@ -29,6 +29,17 @@ for conf_file in ROOT.glob("apps/**/*.conf"):
     except Exception as exc:
         errors.append(f"{conf_file}: {exc}")
 
+
+# Regression checks for the 3.0.1 node-field fix.
+sa_props = (ROOT / "apps/SA-pihole/default/props.conf").read_text(encoding="utf-8")
+if "EVAL-pihole_node = coalesce(pihole_node, host)" not in sa_props:
+    errors.append("SA-pihole props.conf is missing the pihole_node fallback")
+
+for xml_file in ROOT.glob("apps/SA-pihole/default/data/ui/views/*.xml"):
+    text = xml_file.read_text(encoding="utf-8")
+    if 'pihole_node="$node$"' in text:
+        errors.append(f"{xml_file}: dashboard still filters on optional pihole_node")
+
 if errors:
     print("\n".join(errors), file=sys.stderr)
     raise SystemExit(1)

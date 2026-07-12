@@ -3,14 +3,14 @@
   <description>Collector health, blocking state, service status, resource data, and raw log diagnostics.</description>
   <fieldset submitButton="false">
     <input type="time" token="time"><label>Time</label><default><earliest>-24h@h</earliest><latest>now</latest></default></input>
-    <input type="dropdown" token="node"><label>Pi-hole node</label><choice value="*">All</choice><default>*</default><search><query>`pihole_metrics` | stats count by pihole_node</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>pihole_node</fieldForLabel><fieldForValue>pihole_node</fieldForValue></input>
+    <input type="dropdown" token="node"><label>Pi-hole node</label><choice value="*">All</choice><default>*</default><search><query>`pihole_metrics` | stats count by host</query><earliest>-7d</earliest><latest>now</latest></search><fieldForLabel>host</fieldForLabel><fieldForValue>host</fieldForValue></input>
   </fieldset>
 
   <row>
-    <panel><single><title>Last normalized query</title><search><query>`pihole_queries` pihole_node="$node$" | stats max(_time) as last_seen | eval age_seconds=round(now()-last_seen,0) | fields age_seconds</query><earliest>-24h</earliest><latest>now</latest></search><option name="unit"> sec ago</option></single></panel>
-    <panel><single><title>Collector errors</title><search><query>index=pihole event_type=collector_error pihole_node="$node$" | stats count</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search></single></panel>
-    <panel><single><title>Blocking state</title><search><query>`pihole_metrics` metric_name=blocking pihole_node="$node$" | spath path=data.blocking output=blocking | stats latest(blocking) as blocking</query><earliest>-15m</earliest><latest>now</latest></search></single></panel>
-    <panel><single><title>FTL messages</title><search><query>`pihole_metrics` metric_name=messages pihole_node="$node$" | spath path=data.messages output=messages | stats latest(messages) as messages</query><earliest>-15m</earliest><latest>now</latest></search></single></panel>
+    <panel><single><title>Last normalized query</title><search><query>`pihole_queries` host="$node$" | stats max(_time) as last_seen | eval age_seconds=round(now()-last_seen,0) | fields age_seconds</query><earliest>-24h</earliest><latest>now</latest></search><option name="unit"> sec ago</option></single></panel>
+    <panel><single><title>Collector errors</title><search><query>index=pihole event_type=collector_error host="$node$" | stats count</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search></single></panel>
+    <panel><single><title>Blocking state</title><search><query>`pihole_metrics` metric_name=blocking host="$node$" | spath path=data.blocking output=blocking | stats latest(blocking) as blocking</query><earliest>-15m</earliest><latest>now</latest></search></single></panel>
+    <panel><single><title>FTL messages</title><search><query>`pihole_metrics` metric_name=messages host="$node$" | spath path=data.messages output=messages | stats latest(messages) as messages</query><earliest>-15m</earliest><latest>now</latest></search></single></panel>
   </row>
 
   <row>
@@ -18,7 +18,7 @@
       <table>
         <title>Latest Pi-hole query counters</title>
         <search>
-          <query>`pihole_metrics` metric_name=summary pihole_node="$node$" | spath path=data.queries.total output=total | spath path=data.queries.blocked output=blocked | spath path=data.queries.percent_blocked output=percent_blocked | spath path=data.queries.forwarded output=forwarded | spath path=data.queries.cached output=cached | spath path=data.queries.frequency output=frequency | stats latest(total) as total latest(blocked) as blocked latest(percent_blocked) as percent_blocked latest(forwarded) as forwarded latest(cached) as cached latest(frequency) as queries_per_second latest(_time) as last_seen by pihole_node | convert ctime(last_seen)</query>
+          <query>`pihole_metrics` metric_name=summary host="$node$" | spath path=data.queries.total output=total | spath path=data.queries.blocked output=blocked | spath path=data.queries.percent_blocked output=percent_blocked | spath path=data.queries.forwarded output=forwarded | spath path=data.queries.cached output=cached | spath path=data.queries.frequency output=frequency | stats latest(total) as total latest(blocked) as blocked latest(percent_blocked) as percent_blocked latest(forwarded) as forwarded latest(cached) as cached latest(frequency) as queries_per_second latest(_time) as last_seen by host | rename host as pihole_node | convert ctime(last_seen)</query>
           <earliest>-1h</earliest><latest>now</latest>
         </search>
       </table>
@@ -26,16 +26,16 @@
   </row>
 
   <row>
-    <panel><chart><title>API collector event flow</title><search><query>index=pihole (sourcetype=pihole:query:json OR sourcetype=pihole:metric:json) pihole_node="$node$" | timechart span=5m count by sourcetype</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search><option name="charting.chart">line</option></chart></panel>
+    <panel><chart><title>API collector event flow</title><search><query>index=pihole (sourcetype=pihole:query:json OR sourcetype=pihole:metric:json) host="$node$" | timechart span=5m count by sourcetype</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search><option name="charting.chart">line</option></chart></panel>
     <panel><chart><title>Raw log event flow</title><search><query>index=pihole (sourcetype=pihole:dns OR sourcetype=pihole:ftl OR sourcetype=pihole:web) host="$node$" | timechart span=5m count by sourcetype</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search><option name="charting.chart">line</option></chart></panel>
   </row>
 
   <row>
-    <panel><table><title>Collector errors</title><search><query>index=pihole event_type=collector_error pihole_node="$node$" | table _time collector error | sort - _time</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search></table></panel>
+    <panel><table><title>Collector errors</title><search><query>index=pihole event_type=collector_error host="$node$" | table _time collector error | sort - _time</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search></table></panel>
     <panel><table><title>FTL warnings and errors</title><search><query>index=pihole sourcetype=pihole:ftl host="$node$" (log_level=WARNING OR log_level=ERROR OR log_level=FATAL OR "WARN" OR "ERROR") | table _time host log_level _raw | sort - _time</query><earliest>$time.earliest$</earliest><latest>$time.latest$</latest></search></table></panel>
   </row>
 
   <row>
-    <panel><table><title>Latest metric payloads</title><search><query>`pihole_metrics` pihole_node="$node$" | stats latest(_raw) as payload latest(_time) as last_seen by pihole_node metric_name endpoint | convert ctime(last_seen) | sort metric_name</query><earliest>-1h</earliest><latest>now</latest></search></table></panel>
+    <panel><table><title>Latest metric payloads</title><search><query>`pihole_metrics` host="$node$" | stats latest(_raw) as payload latest(_time) as last_seen by host metric_name endpoint | rename host as pihole_node | convert ctime(last_seen) | sort metric_name</query><earliest>-1h</earliest><latest>now</latest></search></table></panel>
   </row>
 </form>
